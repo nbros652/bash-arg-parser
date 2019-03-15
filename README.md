@@ -6,7 +6,7 @@ Purpose and Incorporation
 This script facilitates the parsing of bash arguments and can handle arguments presented in a number of formats:
  * `-k value`
  * `--key value`
- * `-key value`
+ * `-kVALUE` *<sub>(in this case, the switch is `-k` and the value is `VALUE`)</sub>*
  * `key=value`
  * `-k` *<sub>(a switch with no assigned value)</sub>*
  
