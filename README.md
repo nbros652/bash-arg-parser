@@ -1,28 +1,177 @@
 # bash-arg-parser
 An argument parser for other bash scripts
 
+Purpose and Incorporation
+-----
 This script facilitates the parsing of bash arguments and can handle arguments presented in a number of formats:
- 1. `-k value`
- 2. `--key value`
- 3. `key value`
- 4. `key=value`
+ * `-k value`
+ * `--key value`
+ * `-key value`
+ * `key=value`
+ * `-k` *<sub>(a switch with no assigned value)</sub>*
+ 
+*<sub>WARNING: do not mix -k, -key, or --key formatting with key=value formatting</sub>*
  
 To utilize this script, simply place a copy of it in a path that can be accessed by your script. Then at the beginning of your bash script, include a line that reads `source /path/to/bash-arg-parser.sh`, filling in the actual path to the `bash-arg-parser.sh` script.
 
-Any point after this line in your script, you can call `getArg`*`your-switch-name`* to fetch the value assocated with that switch. Say you called your script with `./myscript --key secret -t "my plaintext" -c aes-xts-plain64`. After having sourced this script, any one of the following assignments would work:
-  * `key=$(getArg key)`
-  * `key=$(getArg --key)`
-  * `text=$(getArg t)`
-  * `text=$(getArg -t)`
-  * `cipher=$(getArg c)`
-  * `cipher=$(getArg -c)`
+Functions of Note
+-----------------
+Once sourced by your bash script, this script exposes three functions of interest to your script:
+ 1. `getSwitches`: this function takes no arguments and simply returns a space-delimited list of switches that were used when you called your script.
+ 2. `getArg`: this function takes one or more switch names as arguments and outputs the value of the switch that was provided when the script was run. If more than one switch is provided to `getArg`, they are processed in alphabetical order, and the first one returning a value is outputted. If none of the provided switches were found, the function returns with a status that evaluates to false.
+ 3. `setArgVars`: this function takes no arguments and creates one variable for each switch. The names of the variables correspond to the names of the switches used not including any leading dashes. The value assigned to any given variable is the value associated with the switch of the same name. If the switch name is not also a valid variable name, then this is noted in stderr, and variable assignment is skipped.
+ 
+Examples
+--------
+<sub>`getSwitches` function</sub>
+-----
+Sample Code:
 
-Furthermore, if `-t` and `--text` are both valid switches for a single item, you can call `getArg t text` or `getArg -t --text`, and if one was supplied but not the other, it will return the value for the one that was supplied. If both were supplied, the first occuring argument will be returned.
-  
+    #!/bin/bash
+    # filename: script.sh
+    
+    source bash-arg-parser.sh
+    echo "Switches: $(getSwitches)"
+    
+Output of Sample Code:
+
+    $ ./script.sh -x 10 -y 20 -z 3
+    Switches: x y z
 &nbsp;  
-Additionally, if want simply to assign the values to the switch names outright, you can call the `setArgVars` function which will do this for you. So, say you called your script with `./myscript key=unknown text="did you know x=x?" cipher=aes-xts-plain64`. Then in your script you source `bash-arg-parser.sh` and call `setArgVars`. Now, the following variables will have already been set with the corresponding values:
-  * key -> unknown
-  * text -> "did you know x=x?"
-  * cipher -> aes-xts-plain64
-  
-One point of note here is that it is possible to create switches that can be called with `getArg` but that do not themselves conform to variable naming standards. In this case, the `setArgVars` will assign all the variables it can and notify of the ones it was unable to. For example, given `./myscript -1a "name" -1b "phone" -x 10 -y 5`, running `setArgVars` will create variables x and y with values 10 and 5, respectively and notify that variables named 1a and 1b could not be created since these are invalid variable names. However, since the values for 1a and 1b can still obtained with `getArg`, `getArg 1a` and `getArg 1b` would return "name" and "phone", respectively.
+&nbsp;  
+<sub>`getArg` function</sub>
+-----
+Say you expect a switch that accepts text, `-t` or `--text` or `text=...`, the `getArg` function can be called with a single switch or a list of space-delimited switches to fetch the value for that switch. In the case of a switch that accepts no value, `getArg` outputs "true"
+
+Sample Code:
+
+    #!/bin/bash
+    # filename: script.sh
+    
+    source bash-arg-parser.sh
+    
+    # define switches to look for
+    stringSwitches="-s --string"
+    asciiSwitches="-a --ascii"
+    numberSwitches="-n --number"
+    
+    # use getArg to get values of switches
+    argString="$(getArg $stringSwitches)"   # equivalent to getArg -s --string
+    argAscii="$(getArg $asciiSwitches)"     # equivalent to getArg -a --ascii
+    
+    if [ ! -z "$argString" ]; then
+        # a string was provided; print it to the terminal
+        echo "String arg: $argString"
+    else
+        # no string was provided; report this to terminal
+        echo "No string argument was provided; you can specify a string with -s, --string"
+    fi
+    
+    if [ ! -z $argAscii ]; then
+        # the ascii switch was included as an argument
+        echo "ascii option enabled"
+    else
+        # the ascii switch was not included as an argument
+        echo "ascii option disabled"
+    fi
+    
+    # demo the identification of missing switches
+    if num=$(getArg -n --number); then      # could have used $numberSwitches here
+        echo "You chose the number $num"
+    else
+        echo "The -n and --number switches were omitted"
+    fi
+    
+    
+Output of Sample Code:
+
+    $ ./script.sh -s "hello world" -n 10
+    String arg: hello world
+    ascii option disabled
+    You chose the number 10
+    
+    $ ./script.sh -a --string "hello world"
+    String arg: hello world
+    ascii option enabled
+    The -n and --number switches were omitted
+    
+    $ ./script.sh string="hello world"
+    String arg: hello world
+    ascii option disabled
+    The -n and --number switches were omitted
+    
+    $ ./script.sh --ascii -n 4
+    No string argument was provided; you can specify a string with -s, --string
+    ascii option enabled
+    You chose the number 4
+&nbsp;  
+&nbsp;  
+<sub>`setArgVars` function</sub>
+-----
+Sample Code:
+
+    #!/bin/bash
+    # filename: script.sh
+    
+    source bash-arg-parser.sh
+    
+    # make two passes, printing the values of the variables that match the switch names.
+    # Run setVarArgs on the second iteration
+    for i in 0 1
+    do
+        if [ $i -eq 0 ]; then
+            # first pass; don't run setArgVars yet
+            echo -e "\nAs you can see, no switch variables have yet been set"
+            echo "-----------------------------------------------------"
+        else
+            # second pass; run setArgVars
+            setArgVars
+            echo -e "\nNow the switch variables have been set"
+            echo "--------------------------------------"
+        fi
+        for key in $(getSwitches)
+        do
+            echo "$key is equal to \"${!key}\""
+        done
+    done
+    
+    
+Output of Sample Code:
+
+    $ ./script.sh --string "hello world"
+    
+    As you can see, no switch variables have yet been set
+    -----------------------------------------------------
+    string is equal to ""
+
+    Now the switch variables have been set
+    --------------------------------------
+    string is equal to "hello world"
+    
+    
+    $ ./script.sh -x 5 -y 10 -n
+
+    As you can see, no switch variables have yet been set
+    -----------------------------------------------------
+    n is equal to ""
+    x is equal to ""
+    y is equal to ""
+
+    Now the switch variables have been set
+    --------------------------------------
+    n is equal to "true"
+    x is equal to "5"
+    y is equal to "10"
+
+
+    $ ./script.sh greeting=hello name=tux
+    
+    As you can see, no switch variables have yet been set
+    -----------------------------------------------------
+    greeting is equal to ""
+    name is equal to ""
+    
+    Now the switch variables have been set
+    --------------------------------------
+    greeting is equal to "hello"
+    name is equal to "tux"
