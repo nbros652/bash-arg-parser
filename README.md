@@ -10,7 +10,7 @@ This script facilitates the parsing of bash arguments and can handle arguments p
  * `key=value`
  * `-k` *<sub>(a switch with no assigned value)</sub>*
  
-*<sub>WARNING: do not mix -k, -key, or --key formatting with key=value formatting</sub>*
+*<sub>WARNING: do not mix -k, -kVALUE, or --key formatting with key=value formatting</sub>*
  
 To utilize this script, simply place a copy of it in a path that can be accessed by your script. Then at the beginning of your bash script, include a line that reads `source /path/to/bash-arg-parser.sh`, filling in the actual path to the `bash-arg-parser.sh` script.
 
