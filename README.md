@@ -10,12 +10,12 @@ This script facilitates the parsing of bash arguments and can handle arguments p
 To utilize this script, simply place a copy of it in a path that can be accessed by your script. Then at the beginning of your bash script, include a line that reads `source /path/to/bash-arg-parser.sh`, filling in the actual path to the `bash-arg-parser.sh` script.
 
 Any point after this line in your script, you can call `getArg`*`your-switch-name`* to fetch the value assocated with that switch. Say you called your script with `./myscript --key secret -t "my plaintext" -c aes-xts-plain64`. After having sourced this script, any one of the following assignments would work:
-  * `key=$(getVar key)`
-  * `key=$(getVar --key)`
-  * `text=$(getVar t)`
-  * `text=$(getVar -t)`
-  * `cipher=$(getVar c)`
-  * `cipher=$(getVar -c)`
+  * `key=$(getArg key)`
+  * `key=$(getArg --key)`
+  * `text=$(getArg t)`
+  * `text=$(getArg -t)`
+  * `cipher=$(getArg c)`
+  * `cipher=$(getArg -c)`
 
 Furthermore, if `-t` and `--text` are both valid switches for a single item, you can call `getArg t text` or `getArg -t --text`, and if one was supplied but not the other, it will return the value for the one that was supplied. If both were supplied, the first occuring argument will be returned.
   
