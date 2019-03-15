@@ -47,7 +47,7 @@ getSwitches() {
 }
 
 hasSwitch() {
-	switch=$1
+	switch="$(grep -o '[^-].*' <<< $1)"
 	[[ "$(getSwitches)" =~ (^|[[:space:]])$switch([[:space:]]|$) ]] && return || return 1
 }
 
