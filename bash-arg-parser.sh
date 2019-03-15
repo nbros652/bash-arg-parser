@@ -16,9 +16,14 @@ main() {
 			shift
 		else
 			key=$(grep -oP '[^-].*' <<< "$1")
-			args[$key]="$2"
-			shift
-			shift
+			if grep -q '^[^-]' <<< "$2"; then
+				args[$key]="$2"
+				shift
+				shift
+			else
+				args[$key]='true'
+				shift
+			fi
 		fi
 	done
 }
