@@ -38,12 +38,14 @@ getSwitches() {
 # getArg(): accepts one or more switches and returns the associated value for that switch
 getArg() {
 	unset value
+	unset switchExists
 	for switch in $@
 	do
 		key="$(grep -oP "[^-].*" <<< "$switch")"
+		[[ "$(getSwitches)" =~ (^|[[:space:]])$key([[:space:]]|$) ]] && switchExists=1
 		[ -z "$value" ] && value="${args[$key]}"
 	done
-	echo "$value"
+	[ ! -z $switchExists ] && echo "$value" || return 1
 }
 
 # isValidVarName(): helper function for setArgVars(); not intended to be called otherwise
