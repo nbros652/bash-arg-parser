@@ -6,6 +6,8 @@
 #        identifiers and assigned the values associated with those identifiers so long as the identifier 
 #        represents a valid variable name. 
 
+
+# main(): parses provided command line arguments and saves in an assoc array
 main() {
 	while [ $# -gt 0 ]
 	do
@@ -28,6 +30,12 @@ main() {
 	done
 }
 
+# getSwitches(): returns a space-delimited list of provided switches
+getSwitches() {
+	echo ${!args[*]}
+}
+
+# getArg(): accepts one or more switches and returns the associated value for that switch
 getArg() {
 	unset value
 	for switch in $@
@@ -38,10 +46,13 @@ getArg() {
 	echo "$value"
 }
 
+# isValidVarName(): helper function for setArgVars(); not intended to be called otherwise
 isValidVarName() {
     echo "$1" | grep -q '[_[:alpha:]][_[:alpha:][:digit:]]*' && return || return 1
 }
 
+# setArgVars(): iterates through args and creates variables named according to the switches with
+#	values that correspond to the values of the switches
 setArgVars() {
 	for key in ${!args[*]}
 	do
