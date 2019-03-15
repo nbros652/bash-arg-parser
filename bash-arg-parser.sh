@@ -57,7 +57,7 @@ setArgVars() {
 	for key in ${!args[*]}
 	do
 		if isValidVarName $key; then
-			eval "$key=${args[$key]}"
+			eval "$key=\"${args[$key]}\""
 		else
 			echo -e "Could not set $key=$value\n$key is not a valid variable name" >&2
 		fi
