@@ -23,7 +23,18 @@ main() {
 				shift
 				shift
 			else
-				args[$key]='true'
+				if grep -q '^-[^-]' <<< "$1"; then
+					keyLen=${#key}
+					if [ $keyLen -gt 1 ]; then
+						value=${key:1}
+					else
+						value='true'
+					fi
+					key=${key:0:1}
+					args[$key]="$value"
+				else
+					args[$key]='true'
+				fi
 				shift
 			fi
 		fi
