@@ -16,10 +16,11 @@ To utilize this script, simply place a copy of it in a path that can be accessed
 
 Functions of Note
 -----------------
-Once sourced by your bash script, this script exposes three functions of interest to your script:
+Once sourced by your bash script, this script exposes four functions of interest to your script:
  1. `getSwitches`: this function takes no arguments and simply returns a space-delimited list of switches that were used when you called your script.
  2. `getArg`: this function takes one or more switch names as arguments and outputs the value of the switch that was provided when the script was run. If more than one switch is provided to `getArg`, they are processed in alphabetical order, and the first one returning a value is outputted. If none of the provided switches were found, the function returns with a status that evaluates to false.
  3. `setArgVars`: this function takes no arguments and creates one variable for each switch. The names of the variables correspond to the names of the switches used not including any leading dashes. The value assigned to any given variable is the value associated with the switch of the same name. If the switch name is not also a valid variable name, then this is noted in stderr, and variable assignment is skipped.
+ 4. `hasSwitch`: this function accepts one or more arguments, the names of a switches. As soon as one is found to exist, it is outputted by the function and the function returns with a status that evaluates to true. If none of the switches were found, the function returns with a status that evaluates to false.
  
 Examples
 --------
@@ -175,3 +176,26 @@ Output of Sample Code:
     --------------------------------------
     greeting is equal to "hello"
     name is equal to "tux"
+&nbsp;  
+&nbsp;  
+<sub>`hasSwitch` function</sub>
+-----
+Sample Code:
+
+    #!/bin/bash
+    # filename: script.sh
+
+    source bash-arg-parser.sh
+
+    if switch=$(hasSwitch -n --number); then
+        echo "I was looking for the -n or --number switch and found \"$switch\""
+    else
+        echo "I was looking for the -n or --number switch and could find neither"
+    fi    
+Output of Sample Code:
+
+    $ ./script.sh -x 10
+    I was looking for the -n or --number switch and could find neither
+    
+    $ ./script.sh -n 10
+    I was looking for the -n or --number switch and found "n"
