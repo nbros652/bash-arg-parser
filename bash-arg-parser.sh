@@ -46,6 +46,11 @@ getSwitches() {
 	echo ${!args[*]}
 }
 
+hasSwitch() {
+	switch=$1
+	[[ "$(getSwitches)" =~ (^|[[:space:]])$switch([[:space:]]|$) ]] && return || return 1
+}
+
 # getArg(): accepts one or more switches and returns the associated value for that switch
 getArg() {
 	unset value
@@ -53,7 +58,7 @@ getArg() {
 	for switch in $@
 	do
 		key="$(grep -oP "[^-].*" <<< "$switch")"
-		[[ "$(getSwitches)" =~ (^|[[:space:]])$key([[:space:]]|$) ]] && switchExists=1
+		hasSwitch $key && switchExists=1
 		[ -z "$value" ] && value="${args[$key]}"
 	done
 	[ ! -z $switchExists ] && echo "$value" || return 1
