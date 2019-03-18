@@ -12,28 +12,28 @@ main() {
 	while [ $# -gt 0 ]
 	do
 		if grep  '='  <<< "$1" | cut -f1 -d= | grep -qvP ' '; then
-			key=$(cut -f1 -d= <<< "$1")
-			value="${1:$[${#key}+1]}"
-			args[$key]="$value"
+			bap_key=$(cut -f1 -d= <<< "$1")
+			bap_value="${1:$[${#bap_key}+1]}"
+			bap_args[$bap_key]="$bap_value"
 			shift
 		else
-			key=$(grep -oP '[^-].*' <<< "$1")
+			bap_key="$1"
 			if grep -q '^[^-]' <<< "$2"; then
-				args[$key]="$2"
+				bap_args[$bap_key]="$2"
 				shift
 				shift
 			else
-				if grep -q '^-[^-]' <<< "$1"; then
-					keyLen=${#key}
-					if [ $keyLen -gt 1 ]; then
-						value=${key:1}
+				if grep -q '^-[^-]' <<< "$bap_key"; then
+					bap_keyLen=${#bap_key}
+					if [ $bap_keyLen -gt 2 ]; then
+						bap_value=${bap_key:2}
 					else
-						value='true'
+						bap_value='true'
 					fi
-					key=${key:0:1}
-					args[$key]="$value"
+					bap_key=${bap_key:0:2}
+					bap_args[$bap_key]="$bap_value"
 				else
-					args[$key]='true'
+					bap_args[$bap_key]='true'
 				fi
 				shift
 			fi
@@ -41,27 +41,42 @@ main() {
 	done
 }
 
-# getSwitches(): returns a space-delimited list of provided switches
+# getSwitches(): returns a space-delimited list of switches that were used
 getSwitches() {
-	echo ${!args[*]}
+	# cannot use echo because it will fail in some cases
+	tee /dev/null <<< ${!bap_args[*]}
 }
 
-hasSwitch() {
-	switch="$(grep -o '[^-].*' <<< $1)"
-	[[ "$(getSwitches)" =~ (^|[[:space:]])$switch([[:space:]]|$) ]] && return || return 1
+# hasSwitch(): expects one or more space-delimited switches. Outputs a space-delimited list of all
+#	matching switches that were used. If at least one switch as found, this function returns
+#	with a status that evaluates to true. If none were found, this function returns with a
+#	status that evaluates to false.
+hasSwitches() {
+	unset bap_switchFound
+	bap_testSwitches="$@"
+	bap_includedSwitches="$(getSwitches)"
+	if bap_foundSwitches="$(grep -oP "(${bap_includedSwitches// /|})" <<< "$bap_testSwitches")"; then
+		# print out a space-delimited list of switches found; we can't use echo for this because
+		# it will lie if only a single switches is returned and is one of the following: -e -E -n
+		cat <<< "$bap_foundSwitches" | tr '\n' ' ' | sed 's/ $//' && echo
+		return
+	else
+		return 1
+	fi
 }
 
-# getArg(): accepts one or more switches and returns the associated value for that switch
+# getArg(): accepts one or more switches and returns the associated value for the
+#	first-occuring switch that was passed to getArg. So long as the switch was
+#	found, the function returns with a status that evaluates to true, otherwise
+#	it returns with a status that evaluates to false.
 getArg() {
-	unset value
-	unset switchExists
-	for switch in $@
-	do
-		key="$(grep -oP "[^-].*" <<< "$switch")"
-		hasSwitch $key && switchExists=1
-		[ -z "$value" ] && value="${args[$key]}"
-	done
-	[ ! -z $switchExists ] && echo "$value" || return 1
+	unset bap_value
+	if bap_switches=$(hasSwitches $@); then
+		bap_firstMatchingSwitch=$(cut -f1 -d' ' <<< "$bap_switches")
+		echo "${bap_args[$bap_firstMatchingSwitch]}"
+		return
+	fi
+	return 1
 }
 
 # isValidVarName(): helper function for setArgVars(); not intended to be called otherwise
@@ -72,16 +87,18 @@ isValidVarName() {
 # setArgVars(): iterates through args and creates variables named according to the switches with
 #	values that correspond to the values of the switches
 setArgVars() {
-	for key in ${!args[*]}
+	for bap_key in ${!bap_args[*]}
 	do
-		if isValidVarName $key; then
-			eval "$key=\"${args[$key]}\""
+		bap_varName=${bap_key//-/}
+		if isValidVarName $bap_varName; then
+			eval "$bap_varName=\"${bap_args[$bap_key]}\""
 		else
-			echo -e "Could not set $key=$value\n$key is not a valid variable name" >&2
+			echo -e "Could not set $bap_varName=$bap_value\n$bap_varName is not a valid variable name" >&2
 		fi
 	done
 }
 
-unset args
-declare -A args
+# when sourced, be sure to set up the assoc array and run the main function
+unset bap_args
+declare -A bap_args
 main "$@"
