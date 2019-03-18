@@ -55,10 +55,10 @@ hasSwitches() {
 	unset bap_switchFound
 	bap_testSwitches="$@"
 	bap_includedSwitches="$(getSwitches)"
-	if bap_foundSwitches="$(grep -oP "(${bap_includedSwitches// /|})" <<< "$bap_testSwitches")"; then
+	if bap_foundSwitches="$(grep -oP "(${bap_includedSwitches// /|})( |$)" <<< "$bap_testSwitches")"; then
 		# print out a space-delimited list of switches found; we can't use echo for this because
 		# it will lie if only a single switches is returned and is one of the following: -e -E -n
-		cat <<< "$bap_foundSwitches" | tr '\n' ' ' | sed 's/ $//' && echo
+		cat <<< "$bap_foundSwitches" | sed 's/ $//' | tr '\n' ' ' | sed 's/ $//' && echo
 		return
 	else
 		return 1
@@ -81,7 +81,7 @@ getArg() {
 
 # isValidVarName(): helper function for setArgVars(); not intended to be called otherwise
 isValidVarName() {
-    echo "$1" | grep -q '[_[:alpha:]][_[:alpha:][:digit:]]*' && return || return 1
+    echo "$1" | grep -q '^[_[:alpha:]][_[:alpha:][:digit:]]*$' && return || return 1
 }
 
 # setArgVars(): iterates through args and creates variables named according to the switches with
@@ -89,9 +89,10 @@ isValidVarName() {
 setArgVars() {
 	for bap_key in ${!bap_args[*]}
 	do
-		bap_varName=${bap_key//-/}
+		bap_varName=$(grep -oP '[^-].*' <<< "$bap_key")
+		bap_value="${bap_args[$bap_key]}"
 		if isValidVarName $bap_varName; then
-			eval "$bap_varName=\"${bap_args[$bap_key]}\""
+			eval "$bap_varName=\"$bap_value\""
 		else
 			echo -e "Could not set $bap_varName=$bap_value\n$bap_varName is not a valid variable name" >&2
 		fi
