@@ -7,8 +7,8 @@
 #        represents a valid variable name. 
 
 
-# main(): parses provided command line arguments and saves in an assoc array
-main() {
+# bap_main(): parses provided command line arguments and saves in an assoc array
+bap_main() {
 	while [ $# -gt 0 ]
 	do
 		if grep  '='  <<< "$1" | cut -f1 -d= | grep -qvP ' '; then
@@ -102,4 +102,4 @@ setArgVars() {
 # when sourced, be sure to set up the assoc array and run the main function
 unset bap_args
 declare -A bap_args
-main "$@"
+bap_main "$@"
