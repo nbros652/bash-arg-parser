@@ -20,7 +20,7 @@ Once sourced by your bash script, this script exposes four functions of interest
  1. `getSwitches`: this function takes no arguments and simply returns a space-delimited list of switches that were used when you called your script.
  2. `getArg`: this function takes one or more switch names as arguments and outputs the value of the switch that was provided when the script was run. If more than one switch is provided to `getArg`, they are processed in alphabetical order, and the first one returning a value is outputted. If none of the provided switches were found, the function returns with a status that evaluates to false.
  3. `setArgVars`: this function takes no arguments and creates one variable for each switch. The names of the variables correspond to the names of the switches used not including any leading dashes. The value assigned to any given variable is the value associated with the switch of the same name. If the switch name is not also a valid variable name, then this is noted in stderr, and variable assignment is skipped.
- 4. `hasSwitch`: this function accepts one or more arguments, the names of a switches. As soon as one is found to exist, it is outputted by the function and the function returns with a status that evaluates to true. If none of the switches were found, the function returns with a status that evaluates to false.
+ 4. `hasSwitches`: this function accepts one or more arguments, the names of a switches. All switches that were found to have been supplied as arguments are outputted by the function and the function returns with a status that evaluates to true. If none of the switches were found, the function returns with a status that evaluates to false.
  
 Examples
 --------
@@ -37,7 +37,7 @@ Sample Code:
 Output of Sample Code:
 
     $ ./script.sh -x 10 -y 20 -z 3
-    Switches: x y z
+    Switches: -z -y -x
 &nbsp;  
 &nbsp;  
 <sub>`getArg` function</sub>
@@ -101,7 +101,7 @@ Output of Sample Code:
     ascii option disabled
     The -n and --number switches were omitted
     
-    $ ./script.sh --ascii -n 4
+    $ ./script.sh --ascii -n4
     No string argument was provided; you can specify a string with -s, --string
     ascii option enabled
     You chose the number 4
@@ -132,6 +132,7 @@ Sample Code:
         fi
         for key in $(getSwitches)
         do
+            varName=$(grep -oP '[^-].*' <<< "$key")
             echo "$key is equal to \"${!key}\""
         done
     done
@@ -150,19 +151,23 @@ Output of Sample Code:
     string is equal to "hello world"
     
     
-    $ ./script.sh -x 5 -y 10 -n
+    $ ./script.sh -x 5 -y 10 -n --3x three-x-val
 
     As you can see, no switch variables have yet been set
     -----------------------------------------------------
-    n is equal to ""
-    x is equal to ""
     y is equal to ""
+    x is equal to ""
+    n is equal to ""
+    3x is an invalid variable name
 
     Now the switch variables have been set
     --------------------------------------
-    n is equal to "true"
-    x is equal to "5"
+    Could not set 3x=three-x-val
+    3x is not a valid variable name
     y is equal to "10"
+    x is equal to "5"
+    n is equal to "true"
+    3x is an invalid variable name
 
 
     $ ./script.sh greeting=hello name=tux
@@ -178,7 +183,7 @@ Output of Sample Code:
     name is equal to "tux"
 &nbsp;  
 &nbsp;  
-<sub>`hasSwitch` function</sub>
+<sub>`hasSwitches` function</sub>
 -----
 Sample Code:
 
@@ -187,7 +192,7 @@ Sample Code:
 
     source bash-arg-parser.sh
 
-    if switch=$(hasSwitch -n --number); then
+    if switch=$(hasSwitches -n --number); then
         echo "I was looking for the -n or --number switch and found \"$switch\""
     else
         echo "I was looking for the -n or --number switch and could find neither"
@@ -198,4 +203,4 @@ Output of Sample Code:
     I was looking for the -n or --number switch and could find neither
     
     $ ./script.sh -n 10
-    I was looking for the -n or --number switch and found "n"
+    I was looking for the -n or --number switch and found "-n"
