@@ -1,3 +1,4 @@
+#!/bin/bash
 # this script emulates the creation of instances of a class
 
 # turn on extended debugging so that we can get to function arguments outside of the function

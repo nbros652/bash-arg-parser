@@ -1,3 +1,4 @@
+#!/bin/bash
 # Class definition for argParser objects
 
 unset argParser_args argParser_objName argParser_unprocessedArgs
