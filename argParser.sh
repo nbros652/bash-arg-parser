@@ -4,6 +4,7 @@
 # turn on extended debugging so that we can access function arguments from sub-functions
 shopt -s extdebug
 
+# argParser.cloneArray(): Clones associative arrays; used for caching/restoring parsed switches
 argParser.cloneArray() {
 	source="$1"
 	dest="$2"
@@ -20,6 +21,27 @@ argParser.cloneArray() {
 	done
 }
 
+argParser.areArraysEqual() {
+	arr1=$1
+	arr2=$2
+	
+	# if they aren't the same length, return false
+	[ $(eval "echo \${#$arr1[@]}") -ne $(eval "echo \${#$arr2[@]}") ] && return 1
+	
+	# compare elements 1-by-1
+	maxIndex=$[$(eval "echo \${#$arr1[@]}") - 1]
+	for i in $(seq 0 $maxIndex)
+	do
+		# if the elements don't match return false
+		[ "$(eval echo "\${$arr1[i]}")" != "$(eval echo "\${$arr2[i]}")" ] && return 1
+	done
+	
+	# everything matches; return true
+	: && return
+}
+
+# argParser.getCaller(): looks up the name of the function/script that is making an
+#	argParser request
 argParser.getCaller() {
 	local func fnStack=${FUNCNAME[@]}
 	for func in $fnStack
@@ -32,15 +54,13 @@ argParser.getCaller() {
 	return 1
 }
 
+# argParser.loadScope(): loads the appropriate array of switches based on the caller
 argParser.loadScope() {
 	argParser_caller=$(argParser.getCaller)
 	local caller=$argParser_caller
 	if [ "$caller" != "$argParser_lastCaller" ]; then
 		# our script/function scope changed; (re)load switches
 		
-		# reset the argParser_args variable so we don't retain ghost switches
-		unset argParser_args
-		declare -Ag argParser_args
 		if [ $(eval echo \${#argParser_args_$caller[@]}) -eq 0 ]; then
 			# we haven't parsed the args for this caller yet; do it now
 
@@ -50,14 +70,23 @@ argParser.loadScope() {
 			
 			# cache these args so we don't have to re-parse then next time
 			argParser.cloneArray argParser_args argParser_args_$caller
+			argParser.cloneArray argParser_rawArgs argParser_rawArgs_$caller
 			argParser_lastCaller=$caller
 		else
 			# we've parsed the args for this caller before; reload them
 			argParser.cloneArray argParser_args_$caller argParser_args
 		fi
 	else
-		# nothing changed, don't reload scope
-		return
+		# make sure nothing has changed
+		argParser.getRawArgs
+		if ! argParser.areArraysEqual argParser_rawArgs argParser_rawArgs_caller; then
+			# the raw arguments changed; re-parse
+			argParser.parse "${argParser_rawArgs[@]}"
+			
+			# cache these args so we don't have to re-parse then next time
+			argParser.cloneArray argParser_args argParser_args_$caller
+			argParser.cloneArray argParser_rawArgs argParser_rawArgs_$caller
+		fi
 	fi
 
 }
@@ -65,6 +94,10 @@ argParser.loadScope() {
 # argParser.main(): parses provided command line arguments and saves in an assoc array
 argParser.parse() {
 	local key value keyLen
+	
+	# reset the argParser_args variable so we don't retain ghost switches
+	unset argParser_args
+	declare -Ag argParser_args
 	
 	# loop over all args passed and parse the switches and values
 	while [ $# -gt 0 ]
@@ -128,6 +161,24 @@ argParser.hasSwitches() {
 		# print out a space-delimited list of switches found; we can't use echo for this because
 		# it will lie if only a single switches is returned and is one of the following: -e -E -n
 		cat <<< "$foundSwitches"
+		return
+	else
+		return 1
+	fi
+}
+
+argParser.getMissingSwitches() {
+	argParser.loadScope
+	local requiredSwitches includedSwitches missingSwitches
+	requiredSwitches="$(tr ' ' '\n' <<< "$@")"
+	includedSwitches="$(argParser.getSwitches | grep -oP '.*[^ ]' | tr ' ' '|')"
+	([ -z "$includedSwitches" ] || [ -z "$requiredSwitches" ]) && return 1
+	# look for $requiredSwitches within the $includedSwitches when script/function was called
+	missingSwitches="$(grep -vP "($includedSwitches)( |$)" <<< "$requiredSwitches" | tr '\n' ' ' | grep -oP '.*[^ ]')"
+	if [ ! -z "$missingSwitches" ]; then
+		# print out a space-delimited list of switches found; we can't use echo for this because
+		# it will lie if only a single switches is returned and is one of the following: -e -E -n
+		cat <<< "$missingSwitches"
 		return
 	else
 		return 1
