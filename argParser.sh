@@ -21,6 +21,9 @@ argParser.cloneArray() {
 	done
 }
 
+# argParser.areArraysEqual(): takes two names of non-associate arrays and compares the values
+#	to determine if arrays are the same. Both values and positions within the array of those
+#	values must be the same to evaluate true; otherwise function evaluates false
 argParser.areArraysEqual() {
 	arr1=$1
 	arr2=$2
