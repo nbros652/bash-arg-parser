@@ -21,6 +21,7 @@ With argParser.sh sourced by your bash script, four functions of interest will h
  2. `argParser.getArg`: this function takes one or more switch names as arguments and outputs the value of the switch that was provided when the script/function was run/called. If more than one switch is provided to **argParser.getArg**, they are processed in the order in which they were passed to **argParser.getArg**, and only the value associated with the first one is outputted. If none of the provided switches were found, this function returns with a status that evaluates to false.
  3. `argParser.setArgVars`: this function takes no arguments and creates one variable for each switch that was passed to the calling script/function. The names of the variables correspond to the names of the switches used, not including leading dashes. The value assigned to each variable is the value associated with the switch of the same name. If the switch name is not also a valid variable name, then this is noted in stderr, and variable assignment is skipped.
  4. `argParser.hasSwitches`: this function accepts one or more arguments, names of switches. All switches that are found to have been supplied as arguments to the calling script/function are outputted, and this function returns with a status that evaluates to true. If none of the switches were found, this function returns with a status that evaluates to false.
+ 5. `argParser.getMissingSwitches`: this function accepts one or more arguments, names of switches. These are the required switches. The list of required switches is compared to the list of switches that were provided to the calling script/function, the caller switches. Any required switches not included in the caller switches are considered to be missing switches. A space-delimited list of only the missing switches is outputted. If there were missing switches, this function evaluates to true. Otherwise, it evaluates to false.
  
 Examples
 --------
@@ -208,6 +209,28 @@ Output of Sample Code:
     
     $ ./script.sh -n 10
     I was looking for the -n or --number switch and found "-n"
+&nbsp;  
+&nbsp;
+<sub>`argParser.getMissingSwitches` function</sub>
+-----
+Sample Code:
+
+    #!/bin/bash
+    # filename: script.sh
+    
+    source argParser.sh
+    
+    echo "The -x -y -z switches are required; looking for missing switches"
+    if missing=$(argParser.getMissingSwitches -x -y -z); then
+    	# we found missing switches
+    	echo "Missing switch(es): $missing"
+    	exit
+    fi
+Output of Sample Code:
+
+    $ ./script.sh .sh -x 10 -n
+    The -x -y -z switches are required; looking for missing switches
+    Missing switch(es): -y -z
 &nbsp;  
 &nbsp;  
 <sub>Using an argParser within a function</sub>
